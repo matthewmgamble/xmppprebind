@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>ca.mgamble.xmpp</groupId>
     <artifactId>XMPPPrebind</artifactId>
-    <version>1.0-RELEASE</version>
+    <version>1.0.1-RELEASE</version>
     <packaging>jar</packaging>
     <name>XMPPPrebind</name>
     <url>http://mgamble.ca/oss/</url>

@@ -43,6 +43,8 @@ import org.w3c.dom.Attr;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
 /**
@@ -84,6 +86,10 @@ public class XMPPPrebind {
     static final String SERVICE_NAME = "xmpp";
     private static final byte UTF8NUL = 0x00;
 
+    private boolean doSession = false;
+    private boolean doBind    = false;
+    private Random random;
+    
     public XMPPPrebind(String jabberHost, String xmppDomain, String boshUrl, String boshPort, String resource) throws Exception {
         this(jabberHost, xmppDomain, boshUrl, boshPort, resource, false, false);
 
@@ -125,8 +131,8 @@ public class XMPPPrebind {
          *
          * @link http://xmpp.org/extensions/xep-0124.html#rids
          */
-
-        this.rid = nextLong(new Random(), 10000000);
+        random = new Random();
+        this.rid = nextLong(random, 10000000);
 
 
     }
@@ -178,6 +184,8 @@ public class XMPPPrebind {
                 throw new XMPPPrebindException("Invalid Login");
             }
             sendRestart();
+            sendBindIfRequired();
+            sendSessionIfRequired();
         } catch (Exception ex) {
             if (doDebug) {
                 writeDebug("Could not authenticate:" + ex);
@@ -215,9 +223,23 @@ public class XMPPPrebind {
         try {
             String restartResponse = sendDocument(doc);
             Element restartResponseXML = getBodyFromXml(restartResponse);
-            /* Technically we should check to see if we have a bind and session node, and if so, doBind and doSession
-             * but Openfire doesn't seem to care about this, so ignore it.
-             */
+            NodeList nodeList = restartResponseXML.getChildNodes();
+            for (int i = 0, len = nodeList.getLength(); i < len; i++) {
+                Node currentNode = nodeList.item(i);
+                if (currentNode.getNodeName().contentEquals("stream:features")) {
+                    for (int j = 0; j < currentNode.getChildNodes().getLength(); j++) { 
+                        Node childNode = currentNode.getChildNodes().item(j);
+                        if (childNode.getNodeName().contentEquals("bind")) {
+                            this.doBind = true;
+                            if (doDebug) writeDebug("Setting doBind to TRUE");
+                        } else if (childNode.getNodeName().contentEquals("session")) {
+                            this.doSession = true;
+                            if (doDebug) writeDebug("Setting doSession to TRUE");
+                        }
+                    }
+                }
+            }
+            
         } catch (Exception ex) {
             if (doDebug) {
                 writeDebug("Error sending restart: " + ex);
@@ -226,6 +248,61 @@ public class XMPPPrebind {
         }
     }
 
+    private void sendBindIfRequired() throws XMPPPrebindException {
+        if (doBind) {
+            Document doc = buildBody();
+            Element body = getBodyFromDomDocument(doc);
+            Element iq = doc.createElement("iq");
+            iq.setAttributeNode(getNewTextAttribute(doc, "xmlns", XMLNS_CLIENT));
+            iq.setAttributeNode(getNewTextAttribute(doc, "type", "set"));
+
+            iq.setAttributeNode(getNewTextAttribute(doc, "id", "bind_" + random.nextInt(Integer.MAX_VALUE)));
+            Element bind = doc.createElement("bind");
+            bind.setAttributeNode(getNewTextAttribute(doc, "xmlns", XMLNS_BIND));
+            Element resource = doc.createElement("resource");
+            resource.appendChild(doc.createTextNode(this.resource));
+            bind.appendChild(resource);
+            iq.appendChild(bind);
+            doc.getDocumentElement().appendChild(iq);
+            try {
+                sendDocument(doc);
+            } catch (Exception ex) {
+                throw new XMPPPrebindException("Could not sendBind: " + ex);
+
+            }
+
+        }
+
+    }
+
+    /**
+     * Send session if there's a session node in the restart response (within
+     * stream:features)
+     */
+    private void sendSessionIfRequired() throws XMPPPrebindException {
+        if (doSession) {
+            Document doc = buildBody();
+            Element body = getBodyFromDomDocument(doc);
+            Element iq = doc.createElement("iq");
+            iq.setAttributeNode(getNewTextAttribute(doc, "xmlns", XMLNS_CLIENT));
+            iq.setAttributeNode(getNewTextAttribute(doc, "type", "set"));
+
+            iq.setAttributeNode(getNewTextAttribute(doc, "id", "session_auth_" + random.nextInt(Integer.MAX_VALUE )));
+            Element session = doc.createElement("session");
+            session.setAttributeNode(getNewTextAttribute(doc, "xmlns", XMLNS_SESSION));
+            iq.appendChild(session);
+            doc.getDocumentElement().appendChild(iq);
+            try {
+                sendDocument(doc);
+            } catch (Exception ex) {
+                throw new XMPPPrebindException("Could not sendBind: " + ex);
+
+            }
+        }
+
+    }
+
+    
     /**
      * Send initial connection string
      *
@@ -273,6 +350,11 @@ public class XMPPPrebind {
         HttpEntity httpEntity = response.getEntity();
         InputStream instream = httpEntity.getContent();
         String reply = readHttpStream(instream);
+        if (doDebug) {
+            writeDebug("----- Received --------");
+            writeDebug(reply);
+            writeDebug("-----          --------");
+        }
         httppost.abort();
         return reply;
     }
@@ -325,7 +407,7 @@ public class XMPPPrebind {
             }
 
             return doc;
-        } catch (ParserConfigurationException | DOMException ex) {
+        } catch (Exception ex) {
             if (doDebug) {
                 writeDebug("Exception in buildBody: " + ex);
             }
@@ -495,3 +577,4 @@ public class XMPPPrebind {
         return val;
     }
 }
+
