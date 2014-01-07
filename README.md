@@ -19,8 +19,8 @@ Example usage:
  * @param String boshPort	Bosh Port Number (usually 7070)
  * @param boolean   useSsl     Use SSL 
  * @param boolean   debug      Enable debug
- */
-        XMPPPrebind xmppPrebind = new XMPPPrebind(boshHost, xmppDomain, boshUri, resource, boshPort, useSsl, debug);
+        
+	XMPPPrebind xmppPrebind = new XMPPPrebind(boshHost, xmppDomain, boshUri, resource, boshPort, useSsl, debug);
         xmppPrebind.connect(username, password);
         xmppPrebind.auth();
         SessionInfo sessionInfo = xmppPrebind.getSessionInfo();
