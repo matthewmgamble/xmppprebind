@@ -9,7 +9,8 @@ Usage
 * Clone the repo
 
 Example usage:
-
+```java
+/*
  * Create a new XMPP Object with the required params
  *
  * @param String boshHost Jabber Server Host
@@ -19,7 +20,7 @@ Example usage:
  * @param String boshPort	Bosh Port Number (usually 7070)
  * @param boolean   useSsl     Use SSL 
  * @param boolean   debug      Enable debug
-        
+*/      
 	XMPPPrebind xmppPrebind = new XMPPPrebind(boshHost, xmppDomain, boshUri, resource, boshPort, useSsl, debug);
         xmppPrebind.connect(username, password);
         xmppPrebind.auth();
@@ -27,7 +28,7 @@ Example usage:
         System.out.println("jid:" + sessionInfo.getJid());
         System.out.println("sid:" + sessionInfo.getSid());
         System.out.println("rid:" + sessionInfo.getRid());
-
+```
 * You should now have a working prebinding with Java!
 
 Debugging
