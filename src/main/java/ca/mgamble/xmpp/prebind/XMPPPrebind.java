@@ -63,7 +63,7 @@ public class XMPPPrebind {
     private String xmppDomain;
     private Long rid;
     private String sid = "";
-    private static boolean doDebug = false;
+    private boolean doDebug = false;
     private boolean useSsl = false;
     private int waitTime = 60;
     private DefaultHttpClient httpClient;
@@ -137,13 +137,7 @@ public class XMPPPrebind {
      * @param string $username Username without jabber host
      * @param string $password Password
      */
-    public void enableDebug() {
-        XMPPPrebind.doDebug = true;
-    }
 
-    public void disableDebug() {
-        XMPPPrebind.doDebug = false;
-    }
 
     public void writeDebug(String logMessage) {
         // This should be replaced with a real logger, but for now it's going to system.out
@@ -331,7 +325,7 @@ public class XMPPPrebind {
             }
 
             return doc;
-        } catch (Exception ex) {
+        } catch (ParserConfigurationException | DOMException ex) {
             if (doDebug) {
                 writeDebug("Exception in buildBody: " + ex);
             }
